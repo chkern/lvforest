@@ -15,6 +15,7 @@
 #' @param ctree_control Control settings for ctree function. Default = ctree_control(minbucket=minsize, mtry= split).
 #' 
 #' @examples 
+#' \dontrun{
 #' trained <- scforest.train(
 #' input = c("conf","dicho1","cat1","num1","cat2","rand1","rand2","rand3","rand4","rand5"),
 #' model <- 'LatVar1 =~ simuvar1 + beta2*simuvar2 + beta3*simuvar3 
@@ -26,7 +27,7 @@
 #' cutoff_rmsea = .03,
 #' ctree_control=ctree_control(minbucket=200,mtry=1,testtype="Teststatistic") #Bonferroni correction off 
 #' )
-
+#' }
 
 #' @export
 scforest.train <- function(data,model,input,ntrees=100,split=2,minsize=300,cutoff_rmsea=.05,cutoff_loading=.2,dbsamp=T,bagging=NULL,ordered=NULL,std.lv=FALSE,ctree_control=ctree_control(minbucket=minsize, mtry= split)){

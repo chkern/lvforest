@@ -8,8 +8,10 @@
 #' @param indmethod Method for testing for significance of dHSIC. Default=gamma.
 #' @param exclude_unconf Only use latent variable scores if there is unconfoundedness. Default=TRUE.
 #' @param stdscores Latent variable scores as z-scores.
-#' @examples 
+#' @examples
+#' \dontrun{
 #' predicted <- scforest.predict(trained=trained,data=simu,idvar="id",latvar="LatVar4",exclude_unconf = T, stdscores = F)
+#' }
 
 #' @export
 scforest.predict <- function(trained,data,idvar,conf=trained$Info$input,latvar=latvars[1],indmethod="gamma",exclude_unconf=TRUE,stdscores=FALSE){
