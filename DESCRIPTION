@@ -28,6 +28,7 @@ Imports:
     lavaan,
     parallel,
     partykit,
+    rngtools,
     stringr,
     strucchange,
     tidyr,

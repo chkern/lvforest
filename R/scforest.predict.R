@@ -8,9 +8,10 @@
 #' @param indmethod Method for testing for significance of dHSIC. Default=gamma.
 #' @param exclude_unconf Only use latent variable scores if there is unconfoundedness. Default=TRUE.
 #' @param stdscores Latent variable scores as z-scores.
-#' @examples
+#' @examples 
 #' \dontrun{
-#' predicted <- scforest.predict(trained=trained,data=simu,idvar="id",latvar="LatVar4",exclude_unconf = T, stdscores = F)
+#' predicted <- scforest.predict(trained=trained,
+#' data=simu,idvar="id",latvar="LatVar4",exclude_unconf = T, stdscores = F)
 #' }
 
 #' @export
@@ -29,7 +30,7 @@ scforest.predict <- function(trained,data,idvar,conf=trained$Info$input,latvar=l
   
   #### Pick models used for prediction out of trained model
   bstfts = sapply(trained[[3]], function(y) y[[2]]);bestfits = list()
-  for(i in 1:length(unique(bestnodes$tree))){  bestfits[[i]] = bstfts[[i]][  which( nodeids(trained[[3]][[i]][[1]], terminal = TRUE)  %in%  bestnodes[bestnodes$tree==tree[i],2])  ] }
+  for(i in 1:length(unique(bestnodes$tree))){  bestfits[[i]] = bstfts[[i]][  which( partykit::nodeids(trained[[3]][[i]][[1]], terminal = TRUE)  %in%  bestnodes[bestnodes$tree==tree[i],2])  ] }
   names(bestfits) = names(trained[[3]])
   
   ### Warnungen
@@ -47,6 +48,9 @@ scforest.predict <- function(trained,data,idvar,conf=trained$Info$input,latvar=l
 ################################################################################
 ### Support functions
 
+`%>%` <- dplyr::`%>%`
+`%dopar%` <- foreach::`%dopar%`
+
 scpredconf <- function(i,j,preds,latvar,conf,bestnodes,tree,indmethod){ #irgendwelche Probleme mit dopar... alles exportiert?
   try({
     types <- sapply(conf, function(y) ifelse(class(data[,y]) == "factor","discrete","gaussian")  )
@@ -54,7 +58,7 @@ scpredconf <- function(i,j,preds,latvar,conf,bestnodes,tree,indmethod){ #irgendw
     
     if(nrow(preds)>0){
       varlist <- lapply(names(types),function(y){as.double(preds[,y])})
-      ind_tests <- mapply(function(x,y) { dhsic.test(Y=as.matrix(preds[,latvar]),X=as.matrix(varlist[[which(names(types)==y)]]),matrix.input=F,method=indmethod,pairwise = F,kernel=c("gaussian",x))$p.value }, types, typenames  )
+      ind_tests <- mapply(function(x,y) { dHSIC::dhsic.test(Y=as.matrix(preds[,latvar]),X=as.matrix(varlist[[which(names(types)==y)]]),matrix.input=F,method=indmethod,pairwise = F,kernel=c("gaussian",x))$p.value }, types, typenames  )
     } else {ind_tests <- NA}
     unconf_info<- c()
     unconf_info[1] <- tree[j]
@@ -66,19 +70,19 @@ scpredconf <- function(i,j,preds,latvar,conf,bestnodes,tree,indmethod){ #irgendw
 }
 
 scpredtree <- function(data,bestnodes,bestfits,tree,idvar,manifs,latvar,conf,indmethod,exclude_unconf,stdscores){
-  ncores <- detectCores()-1
-  cl <- makeCluster(spec=ncores) 
-  registerDoParallel(cl)
-  predis <- foreach(j=1:length(tree), .packages=c("lavaan","dHSIC","dplyr"), .export=c("scpredconf")) %dopar% {
+  ncores <- parallel::detectCores()-1
+  cl <- parallel::makeCluster(spec=ncores) 
+  doParallel::registerDoParallel(cl)
+  predis <- foreach::foreach(j=1:length(tree), .packages=c("lavaan","dHSIC","dplyr"), .export=c("scpredconf")) %dopar% {
     ind_tree=list()
     totpreds=data.frame()
     for(i in 1:length(bestnodes[bestnodes$tree==tree[j],2]) ){
-      data_node <- data %>% filter(eval(parse(text=  bestnodes[bestnodes$tree==tree[j],"decision_rule"][i]  )) ) %>% select(all_of(c(idvar,manifs,conf)))
+      data_node <- data %>% dplyr::filter(eval(parse(text=  bestnodes[bestnodes$tree==tree[j],"decision_rule"][i]  )) ) %>% dplyr::select(all_of(c(idvar,manifs,conf)))
       preds <- tryCatch({ 
-        scores <- lavPredict(bestfits[[j]][[i]],newdata = data_node)
+        scores <- lavaan::lavPredict(bestfits[[j]][[i]],newdata = data_node)
         if(stdscores){scoressd <- apply(scores, 2, sd);scores <- t(  apply(scores, 1, function(x) x/scoressd)  )} 
         cbind(data_node,scores)   
-        }, error=function(cond){return(data.frame())})
+      }, error=function(cond){return(data.frame())})
       
       ###Independence-test für jeden Node
       ind_tree[[i]] <- scpredconf(i,j,preds,latvar,conf,bestnodes,tree,indmethod)
@@ -90,7 +94,7 @@ scpredtree <- function(data,bestnodes,bestfits,tree,idvar,manifs,latvar,conf,ind
     }
     list(totpreds,ind_tree)
   }
-  stopCluster(cl)
+  parallel::stopCluster(cl)
   return(predis)
 }
 
@@ -120,7 +124,7 @@ scpredcompile <- function(predis,data,idvar,latvar,tree){
     }
   }
   colnames(unconf_table) <- c("tree","node","confounded params","decision_rule","confounder")
-
+  
   gathered <- list()
   gathered[[1]] <- goodpreds
   names(gathered)[[1]] <- "Goodpreds"
@@ -128,5 +132,10 @@ scpredcompile <- function(predis,data,idvar,latvar,tree){
   names(gathered)[[2]] <- "Unconfoundedness_table"
   return(gathered)
 }
+
+
+
+
+
 
 

@@ -37,6 +37,7 @@ Estimating Valid Latent Variable Scores from Conditionally Causal Models
 }
 \examples{
 \dontrun{
-predicted <- scforest.predict(trained=trained,data=simu,idvar="id",latvar="LatVar4",exclude_unconf = T, stdscores = F)
+predicted <- scforest.predict(trained=trained,
+data=simu,idvar="id",latvar="LatVar4",exclude_unconf = T, stdscores = F)
 }
 }

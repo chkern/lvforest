@@ -17,7 +17,7 @@ scforest.train(
   bagging = NULL,
   ordered = NULL,
   std.lv = FALSE,
-  ctree_control = ctree_control(minbucket = minsize, mtry = split)
+  ctree_control = partykit::ctree_control(minbucket = minsize, mtry = split)
 )
 }
 \arguments{
@@ -58,10 +58,12 @@ model <- 'LatVar1 =~ simuvar1 + beta2*simuvar2 + beta3*simuvar3
  LatVar2 =~ simuvar4 + beta5*simuvar5 + beta6*simuvar6
  LatVar3 =~ simuvar7 + beta8*simuvar8 + beta9*simuvar9
  LatVar4 =~ LatVar1 + lambda2*LatVar2 + lambda3*LatVar3 + delta*simuvar_effect',
-ordered = c("simuvar1","simuvar2","simuvar3","simuvar4","simuvar5","simuvar6","simuvar7","simuvar8","simuvar9"),
+ordered = c("simuvar1","simuvar2","simuvar3","simuvar4",
+"simuvar5","simuvar6","simuvar7","simuvar8","simuvar9"),
 data = simu,
 cutoff_rmsea = .03,
-ctree_control=ctree_control(minbucket=200,mtry=1,testtype="Teststatistic") #Bonferroni correction off 
+ctree_control=ctree_control(minbucket=200,mtry=1,testtype="Teststatistic") 
+#Bonferroni correction off 
 )
 }
 }

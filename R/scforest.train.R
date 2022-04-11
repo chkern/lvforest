@@ -22,18 +22,20 @@
 #'  LatVar2 =~ simuvar4 + beta5*simuvar5 + beta6*simuvar6
 #'  LatVar3 =~ simuvar7 + beta8*simuvar8 + beta9*simuvar9
 #'  LatVar4 =~ LatVar1 + lambda2*LatVar2 + lambda3*LatVar3 + delta*simuvar_effect',
-#' ordered = c("simuvar1","simuvar2","simuvar3","simuvar4","simuvar5","simuvar6","simuvar7","simuvar8","simuvar9"),
+#' ordered = c("simuvar1","simuvar2","simuvar3","simuvar4",
+#' "simuvar5","simuvar6","simuvar7","simuvar8","simuvar9"),
 #' data = simu,
 #' cutoff_rmsea = .03,
-#' ctree_control=ctree_control(minbucket=200,mtry=1,testtype="Teststatistic") #Bonferroni correction off 
+#' ctree_control=ctree_control(minbucket=200,mtry=1,testtype="Teststatistic") 
+#' #Bonferroni correction off 
 #' )
 #' }
 
 #' @export
-scforest.train <- function(data,model,input,ntrees=100,split=2,minsize=300,cutoff_rmsea=.05,cutoff_loading=.2,dbsamp=T,bagging=NULL,ordered=NULL,std.lv=FALSE,ctree_control=ctree_control(minbucket=minsize, mtry= split)){
+scforest.train <- function(data,model,input,ntrees=100,split=2,minsize=300,cutoff_rmsea=.05,cutoff_loading=.2,dbsamp=T,bagging=NULL,ordered=NULL,std.lv=FALSE,ctree_control=partykit::ctree_control(minbucket=minsize, mtry= split)){
   
   #### Trees berechnen
-  trees=sctrees(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,direct,dbsamp,bagging,ordered,std.lv,ctree_control)
+  trees=sctrees(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,dbsamp,bagging,ordered,std.lv,ctree_control)
   
   #### Liste benennen
   for(i in 1:ntrees){
@@ -60,6 +62,7 @@ scforest.train <- function(data,model,input,ntrees=100,split=2,minsize=300,cutof
   names(suc_trees) <- names(trees[sapply(trees, function(y) length(y)==5)])
   
   ##### Information
+  if(!dbsamp & is.null(bagging)){direct=TRUE} else {direct=FALSE}
   info=list()
   info[[1]] <- ntrees; names(info)[[1]] <- "ntrees"
   info[[2]] <- length(suc_trees); names(info)[[2]] <- "successful_iterations"
@@ -88,12 +91,16 @@ scforest.train <- function(data,model,input,ntrees=100,split=2,minsize=300,cutof
 ################################################################################
 ### Support functions
 
+`%>%` <- dplyr::`%>%`
+`%dorng%` <- doRNG::`%dorng%`
+`%dopar%` <- foreach::`%dopar%`
+
 scdata <- function(data,model,input){
   fitsi <- try(lavaan::cfa(model = model, data = data, estimator = "ML",do.fit=FALSE))
   manifs <- fitsi@Model@dimNames[[1]][[1]] #manifest variables
   latvars <- fitsi@Model@dimNames[[1]][[2]] #latent variables
   data = as.data.frame(data)
-  data = data[,c(input,manifs)] %>% replace_na(list("-99"))
+  data = data[,c(input,manifs)] %>% tidyr::replace_na(list("-99"))
   return(list(manifs,latvars,data))
 }
 
@@ -107,7 +114,7 @@ scform <- function(scores,input){
 
 scsampling <- function(data,dbsamp,bagging){
   if (dbsamp){
-    folds <- createFolds(y = rownames(data), k= 2)
+    folds <- caret::createFolds(y = rownames(data), k= 2)
     folds1 <- folds$Fold1
     folds2 <- folds$Fold2
   } else if (!is.null(bagging) && bagging < 1) {
@@ -119,8 +126,8 @@ scsampling <- function(data,dbsamp,bagging){
 scscores <- function(data,model,std.lv){
   csresult <- tryCatch({
     fit_num = lavaan::cfa(model = model, data = data,  estimator = "ML",std.lv = std.lv)
-    fit_num_scores <- lavScores(fit_num)
-    colnames(fit_num_scores) = str_replace_all(colnames(fit_num_scores), "[^[:alnum:]]", "")
+    fit_num_scores <- lavaan::lavScores(fit_num)
+    colnames(fit_num_scores) = stringr::str_replace_all(colnames(fit_num_scores), "[^[:alnum:]]", "")
     scores = colnames(fit_num_scores)
     data = cbind(data,fit_num_scores)
     list(data,scores)},error=function(e){warning("scforest warning: Your model does not converge with ML estimator. Try 'dbsamp=TRUE'.");stop(e)})
@@ -138,10 +145,10 @@ sctrees <- function(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,dbsamp,b
   if(direct){sc=scscores(data,model,std.lv);data=sc[[1]];scores=sc[[2]]}
   
   #All Iterations Multicore
-  ncores <- detectCores()-1
-  cl <- makeCluster(spec=ncores) 
-  registerDoParallel(cl)
-  trees <- foreach(j=1:ntrees, .packages=c("stringr","lavaan","caret","partykit","strucchange"),.export=c("scdata","scform","scsampling","scscores")) %dorng% { 
+  ncores <- parallel::detectCores()-1
+  cl <- parallel::makeCluster(spec=ncores) 
+  doParallel::registerDoParallel(cl)
+  trees <- foreach::foreach(j=1:ntrees, .packages=c("stringr","lavaan","caret","partykit","strucchange"),.export=c("scdata","scform","scsampling","scscores")) %dorng% { 
     
     #### Data Partitioning
     sp = scsampling(data,dbsamp,bagging)
@@ -152,15 +159,15 @@ sctrees <- function(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,dbsamp,b
     #### Scores ausrechnen wenn nicht "direct"
     try({
       if(!direct){sc=scscores(data=treedata,model,std.lv);treedata=sc[[1]];scores=sc[[2]]}
-      tree <- ctree(as.formula(scform(scores,input)),treedata, control = ctree_control  )
-      },silent = T) 
+      tree <- partykit::ctree(as.formula(scform(scores,input)),treedata, control = ctree_control  )
+    },silent = T) 
     ####
     
     if(exists("tree")){ #erster error handler
       
       #### Re-Fit & Modelfit table
       fit_ord <- list()
-      ni <- nodeids(tree, terminal = TRUE)
+      ni <- partykit::nodeids(tree, terminal = TRUE)
       modelfit <- data.frame()
       rls <- partykit:::.list.rules.party(tree)
       types <- sapply(input, function(y) ifelse(class(data[,y]) == "factor","LMuo","maxLM")  )#welcher parameter-stablilitaetstest
@@ -181,22 +188,22 @@ sctrees <- function(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,dbsamp,b
             parload <- pars[pars[,2]=="=~",c(4,5)]
             zv <- as.numeric(parload[,1])/as.numeric(parload[,2]) #z-values 
             zvp <- sapply(zv[zv!=Inf],function(y) pnorm(q=y, lower.tail=FALSE)) #pvalues
-            } else {next} #nur Varianzen & factor loadings
+          } else {next} #nur Varianzen & factor loadings
           if(any(parvars<0 | parvars>30) | any(zvp>0.05 & zvp!=1) | any(abs(as.numeric(parload[,1]))<cutoff_loading) ){next} #negative Varianzen oder zu kleine factor loadings --> next iteration
           
           mf[1] <- j; mf[2] <- ni[i]; if(dbsamp){mf[3] <- nrow(subset(treedata,eval(parse(text=rls[i])) ));mf[4] <- fit_ord[[i]]@Data@nobs[[1]]} else { mf[3] <- nrow(data_refit); mf[4] <- NA}
-          mf[5] <- fitMeasures(fit_ord[[i]],"rmsea");mf[6] <- fitMeasures(fit_ord[[i]],"rmsea.ci.lower");mf[7] <- fitMeasures(fit_ord[[i]],"rmsea.ci.upper");mf[8] <- fitMeasures(fit_ord[[i]],"pvalue"); mf[9] <- rls[which(names(rls)==ni[i])]
+          mf[5] <- lavaan::fitMeasures(fit_ord[[i]],"rmsea");mf[6] <- lavaan::fitMeasures(fit_ord[[i]],"rmsea.ci.lower");mf[7] <- lavaan::fitMeasures(fit_ord[[i]],"rmsea.ci.upper");mf[8] <- lavaan::fitMeasures(fit_ord[[i]],"pvalue"); mf[9] <- rls[which(names(rls)==ni[i])]
           
           ### Parameter stability 
-          if(fitMeasures(fit_ord[[i]],"rmsea")<cutoff_rmsea){  #stability test nur für models mit gutem fit
+          if(lavaan::fitMeasures(fit_ord[[i]],"rmsea")<cutoff_rmsea){  #stability test nur für models mit gutem fit
             datastable <- subset(data,eval(parse(text=rls[i])) ) #richtiger Terminal node aber mit gesamten Daten!
             fit_num <- tryCatch({lavaan::cfa(model = model, data = datastable, estimator = "ML", std.lv = std.lv, control=list(iter.max=100))},error=function(e){return("n.c.")}) 
             if(!is.character(fit_num)) {
-              fluc_tests <- tryCatch({mapply(function(x,y) { sctest(fit_num, order.by = datastable[,y],   functional = x)$p.value }, types, typenames  )},error=function(e){return("n.c.")}) #was wenn "solution has not been found"?
+              fluc_tests <- tryCatch({mapply(function(x,y) { strucchange::sctest(fit_num, order.by = datastable[,y],   functional = x)$p.value }, types, typenames  )},error=function(e){return("n.c.")}) #was wenn "solution has not been found"?
               if(is.character(fluc_tests)){mf[10] <- "n.c."} else {mf[10] <- tryCatch({ifelse(any(fluc_tests < (0.05/length(fluc_tests)) & fluc_tests != 0),"unstable","stable")},error=function(e){return("n.c.")})  }
             } else {mf[10] <- "n.c."} #"not converged"
           } else {mf[10] <- "n.e."} #"not execuded"
-        
+          
           modelfit <- rbind(modelfit,mf)
         }
         
@@ -204,12 +211,12 @@ sctrees <- function(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,dbsamp,b
           modelfit <- as.data.frame(modelfit)
           colnames(modelfit) <- c("tree","node","n_fit","n_refit","RMSEA","RMSEA C.I. lower","RMSEA C.I. upper","p-value_chisq","decision_rule","parameter stability")
           modelfit <- modelfit[order(modelfit[,5],modelfit[,6]),] 
-          }
+        }
         list(tree,fit_ord,modelfit,sp[[1]],sp[[2]]) 
       } else {tree}
     } else {NA}
   }
-  stopCluster(cl)
+  parallel::stopCluster(cl)
   return(trees)
 }
 
