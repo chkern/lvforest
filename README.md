@@ -14,7 +14,7 @@ devtools::install_github("chkern/scforest")
 ### Usage
 
 <p align="center">
-  <img src="https://github.com/mlr-org/mcboost/raw/main/man/scforest.png" />
+  <img src="https://github.com/chkern/scforest/blob/main/man/scforest.png" />
 </p>
 
 ``` {.r}
