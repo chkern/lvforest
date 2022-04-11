@@ -13,6 +13,10 @@ devtools::install_github("chkern/scforest")
 
 ### Usage
 
+<p align="center">
+  <img src="https://github.com/mlr-org/mcboost/raw/main/man/scforest.png" />
+</p>
+
 ``` {.r}
 trained <- scforest.train(input = c("conf","dicho1","cat1","num1","cat2","rand1","rand2","rand3","rand4","rand5"), 
 model <- 'LatVar1 =~ simuvar1 + beta2*simuvar2 + beta3*simuvar3 
