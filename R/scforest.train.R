@@ -2,17 +2,17 @@
 #'
 #' @param data Dataset to be analyzed. Note that the observed responses of your model cannot contain missing data. 
 #' @param model Model description in lavaan-terminology.
-#' @param input Character vector of partitioning variables. Note that every partitioning variable must either be defined as vector (if it should be treted as categorical) or numeric.
+#' @param input Character vector of partitioning variables. Note that every partitioning variable must either be defined as factor (if it should be treated as categorical) or numeric.
 #' @param ordered Character vector of ordinal observed variables of the model. Default = NULL.
 #' @param ntrees Number of trees to be computed. Default = 100.
-#' @param split Number of partitioning variales to be selected for random split selection at every split point within a tree ('mtry' argument in ctree function). Default = 2.
-#' @param minsize Minimum size of teminal nodes of trees. Needs to be big enough to estimate the model parmeters. Default = 300. 
+#' @param split Number of partitioning variables to be selected for random split selection at every split point within a tree ('mtry' argument in ctree function). Default = 2.
+#' @param minsize Minimum size of terminal nodes of trees. Needs to be large enough to estimate the model parameters. Default = 300. 
 #' @param cutoff_rmsea Cutoff value for model fit evaluation. Default = .05.
-#' @param cutoff_loading Cutoff value for multiplicative parameters in model. Note that model with parameter estimates not significantly different form 0 are excluded per default. Default = 0.
+#' @param cutoff_loading Cutoff value for multiplicative parameters in model. Note that models with parameter estimates not significantly different from 0 are excluded per default. Default = 0.
 #' @param dbsamp Double sampling. Default = TRUE.
 #' @param bagging Numeric vector defining the proportion of original data used for tree growing (first number in vector) and re-fitting terminal nodes (second number in vector). Default = NULL.
 #' @param std.lv Standardization of latent variable variances in model. Default = FALSE.
-#' @param ctree_control Control settings for ctree function. Default = ctree_control(minbucket=minsize, mtry= split).
+#' @param ctree_control Control settings for ctree function. Default = ctree_control(minbucket = minsize, mtry = split).
 #' 
 #' @examples 
 #' \dontrun{
@@ -26,7 +26,7 @@
 #' "simuvar5","simuvar6","simuvar7","simuvar8","simuvar9"),
 #' data = simu,
 #' cutoff_rmsea = .03,
-#' ctree_control=ctree_control(minbucket=200,mtry=1,testtype="Teststatistic") 
+#' ctree_control = ctree_control(minbucket = 200, mtry = 1, testtype = "Teststatistic")
 #' #Bonferroni correction off 
 #' )
 #' }

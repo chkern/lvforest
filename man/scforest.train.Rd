@@ -25,17 +25,17 @@ scforest.train(
 
 \item{model}{Model description in lavaan-terminology.}
 
-\item{input}{Character vector of partitioning variables. Note that every partitioning variable must either be defined as vector (if it should be treted as categorical) or numeric.}
+\item{input}{Character vector of partitioning variables. Note that every partitioning variable must either be defined as factor (if it should be treated as categorical) or numeric.}
 
 \item{ntrees}{Number of trees to be computed. Default = 100.}
 
-\item{split}{Number of partitioning variales to be selected for random split selection at every split point within a tree ('mtry' argument in ctree function). Default = 2.}
+\item{split}{Number of partitioning variables to be selected for random split selection at every split point within a tree ('mtry' argument in ctree function). Default = 2.}
 
-\item{minsize}{Minimum size of teminal nodes of trees. Needs to be big enough to estimate the model parmeters. Default = 300.}
+\item{minsize}{Minimum size of terminal nodes of trees. Needs to be large enough to estimate the model parameters. Default = 300.}
 
 \item{cutoff_rmsea}{Cutoff value for model fit evaluation. Default = .05.}
 
-\item{cutoff_loading}{Cutoff value for multiplicative parameters in model. Note that model with parameter estimates not significantly different form 0 are excluded per default. Default = 0.}
+\item{cutoff_loading}{Cutoff value for multiplicative parameters in model. Note that models with parameter estimates not significantly different from 0 are excluded per default. Default = 0.}
 
 \item{dbsamp}{Double sampling. Default = TRUE.}
 
@@ -45,7 +45,7 @@ scforest.train(
 
 \item{std.lv}{Standardization of latent variable variances in model. Default = FALSE.}
 
-\item{ctree_control}{Control settings for ctree function. Default = ctree_control(minbucket=minsize, mtry= split).}
+\item{ctree_control}{Control settings for ctree function. Default = ctree_control(minbucket = minsize, mtry = split).}
 }
 \description{
 Estimating Valid Latent Variable Scores from Conditionally Causal Models
@@ -62,7 +62,7 @@ ordered = c("simuvar1","simuvar2","simuvar3","simuvar4",
 "simuvar5","simuvar6","simuvar7","simuvar8","simuvar9"),
 data = simu,
 cutoff_rmsea = .03,
-ctree_control=ctree_control(minbucket=200,mtry=1,testtype="Teststatistic") 
+ctree_control = ctree_control(minbucket = 200, mtry = 1, testtype = "Teststatistic")
 #Bonferroni correction off 
 )
 }

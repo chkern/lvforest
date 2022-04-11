@@ -16,19 +16,19 @@ scforest.predict(
 )
 }
 \arguments{
-\item{trained}{Trained model creaed by scforest.train.}
+\item{trained}{Trained model created by scforest.train().}
 
 \item{data}{Dataset to be used for latent variable score prediction. Note that the observed responses of your model cannot contain missing data and that it must contain all partitioning variables from training.}
 
-\item{idvar}{ID-Variable to distinguish individual data points in the data set.}
+\item{idvar}{ID-Variable to distinguish individual data points in the dataset.}
 
 \item{conf}{Character vector of potential confounding variables. Default = 'Partitioning Variables from training'.}
 
-\item{latvar}{Latent Variable of interest to estimate latent variable scores from.}
+\item{latvar}{Latent variable of interest to estimate latent variable scores.}
 
-\item{indmethod}{Method for testing for significance of dHSIC. Default=gamma.}
+\item{indmethod}{Method for testing for significance of dHSIC. Default = gamma.}
 
-\item{exclude_unconf}{Only use latent variable scores if there is unconfoundedness. Default=TRUE.}
+\item{exclude_unconf}{Only use latent variable scores if there is unconfoundedness. Default = TRUE.}
 
 \item{stdscores}{Latent variable scores as z-scores.}
 }
@@ -37,7 +37,7 @@ Estimating Valid Latent Variable Scores from Conditionally Causal Models
 }
 \examples{
 \dontrun{
-predicted <- scforest.predict(trained=trained,
-data=simu,idvar="id",latvar="LatVar4",exclude_unconf = T, stdscores = F)
+predicted <- scforest.predict(trained = trained,
+data = simu, idvar = "id", latvar = "LatVar4", exclude_unconf = T, stdscores = F)
 }
 }
