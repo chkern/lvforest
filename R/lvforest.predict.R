@@ -1,23 +1,23 @@
 #' Estimating Valid Latent Variable Scores from Conditionally Causal Models
 #'
-#' @param trained Trained model created by scforest.train(). 
+#' @param trained Trained model created with lvforest.train(). 
 #' @param data Dataset to be used for latent variable score prediction. Note that the observed responses of your model cannot contain missing data and that it must contain all partitioning variables from training.
 #' @param idvar ID-Variable to distinguish individual data points in the dataset.
 #' @param conf Character vector of potential confounding variables. Default = 'Partitioning Variables from training'.
-#' @param latvar Latent variable of interest to estimate latent variable scores. 
+#' @param latvar Latent Variable of interest to estimate latent variable scores from. 
 #' @param indmethod Method for testing for significance of dHSIC. Default = gamma.
 #' @param exclude_unconf Only use latent variable scores if there is unconfoundedness. Default = TRUE.
 #' @param stdscores Latent variable scores as z-scores.
 #' @examples 
 #' \dontrun{
-#' predicted <- scforest.predict(trained = trained,
+#' predicted <- lvforest.predict(trained = trained,
 #' data = simu, idvar = "id", latvar = "LatVar4", exclude_unconf = T, stdscores = F)
 #' }
 
 #' @export
-scforest.predict <- function(trained,data,idvar,conf=trained$Info$input,latvar=latvars[1],indmethod="gamma",exclude_unconf=TRUE,stdscores=FALSE){
+lvforest.predict <- function(trained,data,idvar,conf=trained$Info$input,latvar=latvars[1],indmethod="gamma",exclude_unconf=TRUE,stdscores=FALSE){
   ### Warnung
-  if(nrow(trained$Bestnodes) == 0){stop("scforest error: no suitable nodes produced in training.")}
+  if(nrow(trained$Bestnodes) == 0){stop("lvforest error: no suitable nodes produced in training.")}
   
   #### Gather Information
   data = as.data.frame(data)
@@ -34,16 +34,16 @@ scforest.predict <- function(trained,data,idvar,conf=trained$Info$input,latvar=l
   names(bestfits) = names(trained[[3]])
   
   ### Warnungen
-  if(length(bestfits) != length(tree)  ){stop("scforest fatal error: length of best_fits in trained model does not correspond with information in bestnodes.")} #weiter zum nächsten tree wenn liste mit best fits und bestnodes nicht übereinstimmen!
-  if( is.null(data) ){stop("scforest error: please define data set for prediction including same manifest variables and partitioning variables as data set for training.")}
-  if( is.null(latvar) ){stop("scforest error: please define latent variable of interest for LV-scores.")}
+  if(length(bestfits) != length(tree)  ){stop("lvforest fatal error: length of best_fits in trained model does not correspond with information in bestnodes.")} #weiter zum nächsten tree wenn liste mit best fits und bestnodes nicht übereinstimmen!
+  if( is.null(data) ){stop("lvforest error: please define data set for prediction including same manifest variables and partitioning variables as data set for training.")}
+  if( is.null(latvar) ){stop("lvforest error: please define latent variable of interest for LV-scores.")}
   
   ### Prediction & Independence tests...
-  predis <- scpredtree(data,bestnodes,bestfits,tree,idvar,manifs,latvar,conf,indmethod,exclude_unconf,stdscores)
+  predis <- lvpredtree(data,bestnodes,bestfits,tree,idvar,manifs,latvar,conf,indmethod,exclude_unconf,stdscores)
   
   ### Compile results
-  scfor <- scpredcompile(predis,data,idvar,latvar,tree)
-  return(scfor)
+  lvfor <- lvpredcompile(predis,data,idvar,latvar,tree)
+  return(lvfor)
 }
 ################################################################################
 ### Support functions
@@ -51,7 +51,7 @@ scforest.predict <- function(trained,data,idvar,conf=trained$Info$input,latvar=l
 `%>%` <- dplyr::`%>%`
 `%dopar%` <- foreach::`%dopar%`
 
-scpredconf <- function(i,j,preds,latvar,conf,bestnodes,tree,indmethod){ #irgendwelche Probleme mit dopar... alles exportiert?
+lvpredconf <- function(i,j,preds,latvar,conf,bestnodes,tree,indmethod){ #irgendwelche Probleme mit dopar... alles exportiert?
   try({
     types <- sapply(conf, function(y) ifelse(class(data[,y]) == "factor","discrete","gaussian")  )
     typenames <- names(types)
@@ -69,11 +69,11 @@ scpredconf <- function(i,j,preds,latvar,conf,bestnodes,tree,indmethod){ #irgendw
   return(list(ind_tests,unconf_info))
 }
 
-scpredtree <- function(data,bestnodes,bestfits,tree,idvar,manifs,latvar,conf,indmethod,exclude_unconf,stdscores){
+lvpredtree <- function(data,bestnodes,bestfits,tree,idvar,manifs,latvar,conf,indmethod,exclude_unconf,stdscores){
   ncores <- parallel::detectCores()-1
   cl <- parallel::makeCluster(spec=ncores) 
   doParallel::registerDoParallel(cl)
-  predis <- foreach::foreach(j=1:length(tree), .packages=c("lavaan","dHSIC","dplyr"), .export=c("scpredconf")) %dopar% {
+  predis <- foreach::foreach(j=1:length(tree), .packages=c("lavaan","dHSIC","dplyr"), .export=c("lvpredconf")) %dopar% {
     ind_tree=list()
     totpreds=data.frame()
     for(i in 1:length(bestnodes[bestnodes$tree==tree[j],2]) ){
@@ -85,7 +85,7 @@ scpredtree <- function(data,bestnodes,bestfits,tree,idvar,manifs,latvar,conf,ind
       }, error=function(cond){return(data.frame())})
       
       ###Independence-test für jeden Node
-      ind_tree[[i]] <- scpredconf(i,j,preds,latvar,conf,bestnodes,tree,indmethod)
+      ind_tree[[i]] <- lvpredconf(i,j,preds,latvar,conf,bestnodes,tree,indmethod)
       
       ###Preds nur verwenden wenn parameter unconfounded
       if(exclude_unconf){
@@ -98,7 +98,7 @@ scpredtree <- function(data,bestnodes,bestfits,tree,idvar,manifs,latvar,conf,ind
   return(predis)
 }
 
-scpredcompile <- function(predis,data,idvar,latvar,tree){
+lvpredcompile <- function(predis,data,idvar,latvar,tree){
   goodpreds <- as.data.frame(data[,idvar]);colnames(goodpreds)=idvar;v=1
   for (i in 1:length(predis) ){ #every tree
     if(nrow(predis[[i]][[1]])>0) {preds <- predis[[i]][[1]][,c(idvar,latvar)]} else {next};v=v+1
@@ -132,10 +132,4 @@ scpredcompile <- function(predis,data,idvar,latvar,tree){
   names(gathered)[[2]] <- "Unconfoundedness_table"
   return(gathered)
 }
-
-
-
-
-
-
 

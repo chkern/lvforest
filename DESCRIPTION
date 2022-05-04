@@ -1,5 +1,5 @@
-Package: scforest
-Title: Survey Scale Forest for R
+Package: lvforest
+Title: Latent Variable Forest for R
 Version: 0.0.1
 Authors@R: 
     c(person(given = "Franz",
@@ -13,7 +13,7 @@ Authors@R:
              email = "c.kern@uni-mannheim.de",
              comment = c(ORCID = "0000-0001-7363-4299"))
     )
-Description: R package for 'Survey Scale Forests: Estimating Valid Latent Variable Scores from Conditionally Causal Models'.
+Description: R package for 'Latent Variable Forests: Estimating Valid Latent Variable Scores from Conditionally Causal Models'.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

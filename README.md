@@ -1,14 +1,14 @@
-# SC Forest for R
+# LV Forest for R
 
-R package for "Survey Scale Forests: Estimating Valid Latent Variable Scores from Conditionally Causal Models"
+R package for "Latent Variable Forests: Estimating Valid Latent Variable Scores from Conditionally Causal Models"
 
-We develop a survey scale forest (SC Forest) algorithm for the estimation of latent variable scores from conditionally causal models with one or more latent variables. SC Forest establishes conditional causality in confirmatory factor analysis (CFA) models with ordinal and/or numerical response variables. Through parametric model restrictions paired with a non-parametric tree-based machine learning approach, SC Forest estimates latent variables scores that fulfill the main criteria for construct validity.
+We develop a Latent Variable Forest (LV Forest) algorithm for the estimation of latent variable scores from conditionally causal models with one or more latent variables. LV Forest establishes conditional causality in confirmatory factor analysis (CFA) models with ordinal and/or numerical response variables. Through parametric model restrictions paired with a non-parametric tree-based machine learning approach, LV Forest estimates latent variables scores that fulfill the main criteria for construct validity.
 
 ### Installation
 
 ``` {.r}
 if (!require("devtools")) install.packages("devtools")
-devtools::install_github("chkern/scforest")
+devtools::install_github("chkern/lvforest")
 ```
 
 ### Usage
@@ -18,7 +18,7 @@ devtools::install_github("chkern/scforest")
 </p>
 
 ``` {.r}
-trained <- scforest.train(input = c("conf","dicho1","cat1","num1","cat2","rand1","rand2","rand3","rand4","rand5"), 
+trained <- lvforest.train(input = c("conf","dicho1","cat1","num1","cat2","rand1","rand2","rand3","rand4","rand5"), 
 model <- 'LatVar1 =~ simuvar1 + beta2*simuvar2 + beta3*simuvar3 
 LatVar2 =~ simuvar4 + beta5*simuvar5 + beta6*simuvar6
 LatVar3 =~ simuvar7 + beta8*simuvar8 + beta9*simuvar9
@@ -30,5 +30,5 @@ ctree_control = ctree_control(minbucket = 200, mtry = 1, testtype = "Teststatist
 ```
 
 ``` {.r}
-predicted <- scforest.predict(trained = trained, data = simu, idvar = "id", latvar = "LatVar4", exclude_unconf = T, stdscores = F)
+predicted <- lvforest.predict(trained = trained, data = simu, idvar = "id", latvar = "LatVar4", exclude_unconf = T, stdscores = F)
 ```

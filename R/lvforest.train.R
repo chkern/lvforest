@@ -8,7 +8,7 @@
 #' @param split Number of partitioning variables to be selected for random split selection at every split point within a tree ('mtry' argument in ctree function). Default = 2.
 #' @param minsize Minimum size of terminal nodes of trees. Needs to be large enough to estimate the model parameters. Default = 300. 
 #' @param cutoff_rmsea Cutoff value for model fit evaluation. Default = .05.
-#' @param cutoff_loading Cutoff value for multiplicative parameters in model. Note that models with parameter estimates not significantly different from 0 are excluded per default. Default = 0.
+#' @param cutoff_loading Cutoff value for multiplicative parameters in model. Note that models with parameter estimates not significantly different form 0 are excluded per default. Default = 0.
 #' @param dbsamp Double sampling. Default = TRUE.
 #' @param bagging Numeric vector defining the proportion of original data used for tree growing (first number in vector) and re-fitting terminal nodes (second number in vector). Default = NULL.
 #' @param std.lv Standardization of latent variable variances in model. Default = FALSE.
@@ -16,7 +16,7 @@
 #' 
 #' @examples 
 #' \dontrun{
-#' trained <- scforest.train(
+#' trained <- lvforest.train(
 #' input = c("conf","dicho1","cat1","num1","cat2","rand1","rand2","rand3","rand4","rand5"),
 #' model <- 'LatVar1 =~ simuvar1 + beta2*simuvar2 + beta3*simuvar3 
 #'  LatVar2 =~ simuvar4 + beta5*simuvar5 + beta6*simuvar6
@@ -26,16 +26,16 @@
 #' "simuvar5","simuvar6","simuvar7","simuvar8","simuvar9"),
 #' data = simu,
 #' cutoff_rmsea = .03,
-#' ctree_control = ctree_control(minbucket = 200, mtry = 1, testtype = "Teststatistic")
+#' ctree_control = ctree_control(minbucket = 200, mtry = 1, testtype = "Teststatistic") 
 #' #Bonferroni correction off 
 #' )
 #' }
 
 #' @export
-scforest.train <- function(data,model,input,ntrees=100,split=2,minsize=300,cutoff_rmsea=.05,cutoff_loading=.2,dbsamp=T,bagging=NULL,ordered=NULL,std.lv=FALSE,ctree_control=partykit::ctree_control(minbucket=minsize, mtry= split)){
+lvforest.train <- function(data,model,input,ntrees=100,split=2,minsize=300,cutoff_rmsea=.05,cutoff_loading=.2,dbsamp=T,bagging=NULL,ordered=NULL,std.lv=FALSE,ctree_control=partykit::ctree_control(minbucket=minsize, mtry= split)){
   
   #### Trees berechnen
-  trees=sctrees(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,dbsamp,bagging,ordered,std.lv,ctree_control)
+  trees=lvtrees(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,dbsamp,bagging,ordered,std.lv,ctree_control)
   
   #### Liste benennen
   for(i in 1:ntrees){
@@ -77,14 +77,14 @@ scforest.train <- function(data,model,input,ntrees=100,split=2,minsize=300,cutof
   info[[11]] <- model; names(info)[[11]] <- "model"
   
   #### Results erstellen
-  scfor <- list()
-  scfor[[1]] <- info; names(scfor)[[1]] <- "Info"
-  scfor[[2]] <- mofi; names(scfor)[[2]] <- "Nodes"
-  if(!(ncol(mofi_stable)==0)){scfor[[3]] <- pred_trees; names(scfor)[[3]] <- "Pred_trees"}
-  if(!(ncol(mofi_stable)==0)){scfor[[4]] <- mofi_stable; names(scfor)[[4]] <- "Bestnodes"}
-  scfor[[5]] <- suc_trees; names(scfor)[[5]] <- "Suc_trees"
+  lvfor <- list()
+  lvfor[[1]] <- info; names(lvfor)[[1]] <- "Info"
+  lvfor[[2]] <- mofi; names(lvfor)[[2]] <- "Nodes"
+  if(!(ncol(mofi_stable)==0)){lvfor[[3]] <- pred_trees; names(lvfor)[[3]] <- "Pred_trees"}
+  if(!(ncol(mofi_stable)==0)){lvfor[[4]] <- mofi_stable; names(lvfor)[[4]] <- "Bestnodes"}
+  lvfor[[5]] <- suc_trees; names(lvfor)[[5]] <- "Suc_trees"
   
-  return(scfor)
+  return(lvfor)
 }
 
 
@@ -95,7 +95,7 @@ scforest.train <- function(data,model,input,ntrees=100,split=2,minsize=300,cutof
 `%dorng%` <- doRNG::`%dorng%`
 `%dopar%` <- foreach::`%dopar%`
 
-scdata <- function(data,model,input){
+lvdata <- function(data,model,input){
   fitsi <- try(lavaan::cfa(model = model, data = data, estimator = "ML",do.fit=FALSE))
   manifs <- fitsi@Model@dimNames[[1]][[1]] #manifest variables
   latvars <- fitsi@Model@dimNames[[1]][[2]] #latent variables
@@ -104,7 +104,7 @@ scdata <- function(data,model,input){
   return(list(manifs,latvars,data))
 }
 
-scform <- function(scores,input){
+lvform <- function(scores,input){
   formy = "";  for (i in 1:length(scores)){formy=paste(formy, paste(scores[i],"+"))  }
   formy = substr(formy,1,nchar(formy)-2); form = paste(formy,"~")
   for (i in 1:length(input)){ form=paste(form,paste(input[i],"+")) }
@@ -112,7 +112,7 @@ scform <- function(scores,input){
   return(form)
 }
 
-scsampling <- function(data,dbsamp,bagging){
+lvsampling <- function(data,dbsamp,bagging){
   if (dbsamp){
     folds <- caret::createFolds(y = rownames(data), k= 2)
     folds1 <- folds$Fold1
@@ -123,43 +123,43 @@ scsampling <- function(data,dbsamp,bagging){
   return(list(folds1,folds2))
 }
 
-scscores <- function(data,model,std.lv){
+lvscores <- function(data,model,std.lv){
   csresult <- tryCatch({
     fit_num = lavaan::cfa(model = model, data = data,  estimator = "ML",std.lv = std.lv)
     fit_num_scores <- lavaan::lavScores(fit_num)
     colnames(fit_num_scores) = stringr::str_replace_all(colnames(fit_num_scores), "[^[:alnum:]]", "")
     scores = colnames(fit_num_scores)
     data = cbind(data,fit_num_scores)
-    list(data,scores)},error=function(e){warning("scforest warning: Your model does not converge with ML estimator. Try 'dbsamp=TRUE'.");stop(e)})
+    list(data,scores)},error=function(e){warning("lvforest warning: Your model does not converge with ML estimator. Try 'dbsamp=TRUE'.");stop(e)})
   return(csresult)
 }
 
-sctrees <- function(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,dbsamp,bagging,ordered,std.lv,ctree_control){
+lvtrees <- function(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,dbsamp,bagging,ordered,std.lv,ctree_control){
   #Preprocess & gather Info
   direct=FALSE
-  dt=scdata(data,model,input);manifs=dt[[1]];latvars=dt[[2]];data=dt[[3]]
+  dt=lvdata(data,model,input);manifs=dt[[1]];latvars=dt[[2]];data=dt[[3]]
   
   #Scores ausrechnen wenn "direct"
   if(dbsamp) bagging=NULL
   if(!dbsamp & is.null(bagging)){direct=T}
-  if(direct){sc=scscores(data,model,std.lv);data=sc[[1]];scores=sc[[2]]}
+  if(direct){sc=lvscores(data,model,std.lv);data=sc[[1]];scores=sc[[2]]}
   
   #All Iterations Multicore
   ncores <- parallel::detectCores()-1
   cl <- parallel::makeCluster(spec=ncores) 
   doParallel::registerDoParallel(cl)
-  trees <- foreach::foreach(j=1:ntrees, .packages=c("stringr","lavaan","caret","partykit","strucchange"),.export=c("scdata","scform","scsampling","scscores")) %dorng% { 
+  trees <- foreach::foreach(j=1:ntrees, .packages=c("stringr","lavaan","caret","partykit","strucchange"),.export=c("lvdata","lvform","lvsampling","lvscores")) %dorng% { 
     
     #### Data Partitioning
-    sp = scsampling(data,dbsamp,bagging)
+    sp = lvsampling(data,dbsamp,bagging)
     treedata = data[which(as.numeric(rownames(data)) %in%  sp[[1]]),]
     datafit = data[which(as.numeric(rownames(data)) %in%  sp[[2]]),]
     
     #### MOB mit der ersten Haelfte der Daten
     #### Scores ausrechnen wenn nicht "direct"
     try({
-      if(!direct){sc=scscores(data=treedata,model,std.lv);treedata=sc[[1]];scores=sc[[2]]}
-      tree <- partykit::ctree(as.formula(scform(scores,input)),treedata, control = ctree_control  )
+      if(!direct){sc=lvscores(data=treedata,model,std.lv);treedata=sc[[1]];scores=sc[[2]]}
+      tree <- partykit::ctree(as.formula(lvform(scores,input)),treedata, control = ctree_control  )
     },silent = T) 
     ####
     
@@ -219,9 +219,4 @@ sctrees <- function(data,model,input,ntrees,cutoff_rmsea,cutoff_loading,dbsamp,b
   parallel::stopCluster(cl)
   return(trees)
 }
-
-
-
-
-
 
