@@ -14,7 +14,7 @@ devtools::install_github("chkern/lvforest")
 ### Usage
 
 <p align="center">
-  <img src="https://github.com/chkern/scforest/blob/main/man/scforest.png" />
+  <img src="https://github.com/chkern/lvforest/blob/main/man/lvforest.png" />
 </p>
 
 ``` {.r}
